@@ -2,15 +2,15 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FRIENDS, FRIEND_IDS } from '../data/friends'
 import DETAILS from '../data/map-details.json'
 import {
-  BADGE_AT, BOAT_SIZE, SEA_BOATS, CLOUDS, EXTRA_HOLE, OPEN_ZONE, ORIGIN, REGIONS, VB, asset, hasContent, provinceById, type Province, type SeaBoat,
+  BADGE_AT, BOAT_SIZE, SEA_BOATS, CLOUDS, EXTRA_HOLE, OPEN_ZONE, REGIONS, VB, asset, hasContent, provinceById, type Province, type SeaBoat,
 } from '../data/journey'
 import { saveData } from '../lib/network'
-import { getProgress, isNight, markRevealed, setTraveler, useProgress } from '../lib/progress'
+import { isNight, setTraveler, useProgress } from '../lib/progress'
 import { Flyer, type FlyerHandle } from './Flyer'
 import { holdWarm, whenSharp } from './preload'
 import { NEAR, requestSharp } from './sharp'
 import { Face } from './parts'
-import { currentProvince, isUnlocked, openProvinces, provinceDone } from './stops'
+import { currentProvince, provinceDone } from './stops'
 import { toast } from './toast'
 import './journey.css'
 
@@ -119,8 +119,8 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   // While the traveller flies, the rest of the map stands still so every frame goes to the flight.
   const hushed = useRef(false)
-  // Provinces whose fog is gone on screen (revealed before, or just animated).
-  const [shown, setShown] = useState(() => new Set(progress.revealed))
+  // Personal study copy: no fog, every province is always on show.
+  const [shown] = useState(() => new Set(REGIONS.filter((r) => r.unit).map((r) => r.id)))
   const [pinAt, setPinAt] = useState(() => event?.hopFrom ?? currentProvince(progress).id)
   const [picking, setPicking] = useState(false)
   // The traveller in the corner is only put on the map once it shows, so its pictures never compete with the map's own.
@@ -128,7 +128,7 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
   if (active && !started) setStarted(true)
   // Clouds over provinces that are already cleared are never seen. The others are fetched once the map shows, not while the
   // loading screen is still fetching the map itself (on a slow line they were taking a share of it).
-  const [clearedAtStart] = useState(() => new Set(progress.revealed))
+  const clearedAtStart = shown
   // The light map shows first; the sharp one fades in over it when it has arrived.
   const [sharp, setSharp] = useState(false)
   const [lightGone, setLightGone] = useState(false)
@@ -171,39 +171,6 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
   const pinAtRef = useRef(pinAt)
   pinAtRef.current = pinAt
 
-  // Opening a province: the fog clears in a circle from its origin and its clouds fly away.
-  const reveal = (id: string) =>
-    new Promise<void>((resolve) => {
-      const r = regionById.get(id)!
-      const circle = svgRef.current!.querySelector<SVGCircleElement>(`#j-clip-${id} circle`)!
-      const o = ORIGIN[id] ?? r.c
-      const bb = svgRef.current!.querySelector<SVGGElement>(`#j-hole-${id}`)!.getBBox()
-      const corners = [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]]
-      const far = Math.max(...corners.map(([x, y]) => Math.hypot(x - o[0], y - o[1]))) + 10
-      layerRef.current!.querySelectorAll<HTMLElement>(`[data-cloud="${id}"]`).forEach((c, i) => {
-        const dx = Number(c.dataset.dx) || 1
-        const dy = Number(c.dataset.dy) || 1
-        const n = Math.hypot(dx, dy) || 1
-        setTimeout(() => {
-          c.style.transform = `translate(calc(-50% + ${(dx / n) * 260}px), calc(-50% + ${(dy / n) * 160 - 40}px)) scale(1.35)`
-          c.style.opacity = '0'
-        }, i * 90)
-      })
-      setTimeout(() => {
-        setShown((s) => new Set(s).add(id))
-        const p = provinceById(id)
-        toast(`${p.name} unlocked!<span class="j-han">${p.zh}</span>`)
-      }, 900)
-      const t0 = performance.now()
-      const step = (now: number) => {
-        const k = Math.min(1, Math.max(0, (now - t0) / 1700))
-        circle.setAttribute('r', (far * (1 - Math.pow(1 - k, 3))).toFixed(1))
-        if (k < 1) requestAnimationFrame(step)
-        else resolve()
-      }
-      requestAnimationFrame(step)
-    })
-
   // The traveller hops from one badge to another along a gentle curve.
   const hop = (from: string, to: string) =>
     new Promise<void>((resolve) => {
@@ -241,7 +208,7 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
   // First paint: open the fog that was already cleared.
   useEffect(() => {
     const svg = svgRef.current!
-    for (const id of getProgress().revealed) {
+    for (const id of shown) {
       svg.querySelector(`#j-clip-${id} circle`)?.setAttribute('r', '2000')
       layerRef.current!.querySelectorAll<HTMLElement>(`[data-cloud="${id}"]`).forEach((c) => (c.style.opacity = '0'))
     }
@@ -250,21 +217,14 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
   // Each time the map shows: centre on the traveller, then play anything new.
   useEffect(() => {
     if (!active) return
-    const now = getProgress()
     const from = event?.hopFrom ?? pinAt
     placePin(badgeAt(from))
     centerOn(badgeAt(from), false)
-    const pending = openProvinces(now).filter((p) => !now.revealed.includes(p.id))
-    if (!pending.length && !event) return
+    if (!event) return
     let alive = true
     ;(async () => {
       busy.current = true
       await sleep(600)
-      for (const p of pending) {
-        if (!alive) return
-        await reveal(p.id)
-        markRevealed(p.id)
-      }
       if (event && alive) {
         await hop(event.hopFrom, event.hopTo)
         onEventDone()
@@ -297,8 +257,8 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
   const tap = (id: string, badge: HTMLElement) => {
     const p = provinceById(id)
     if (!p || busy.current) return
-    if (!isUnlocked(p, progress) || !shown.has(id)) {
-      toast(hasContent(p) ? `${p.name} · finish the province before it` : `${p.name} · coming soon`)
+    if (!hasContent(p)) {
+      toast(`${p.name} · coming soon`)
       return
     }
     busy.current = true
@@ -411,7 +371,7 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
               const p = provinceById(r.id)
               const at = badgeAt(r.id)
               const done = provinceDone(p, progress)
-              const open = shown.has(r.id) && isUnlocked(p, progress)
+              const open = hasContent(p)
               return (
                 <div key={r.id}>
                   <button
@@ -419,7 +379,7 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
                     className={`j-badge ${done ? 'done' : open ? 'open' : 'locked'}`}
                     style={pct(at)}
                     onClick={(e) => tap(r.id, e.currentTarget)}
-                    aria-label={`${p.name}${open ? '' : ' (locked)'}`}
+                    aria-label={`${p.name}${open ? '' : ' (coming soon)'}`}
                   >
                     {done ? '✓' : r.unit}
                   </button>
