@@ -23,6 +23,8 @@ export type Account = {
   problem: string | null
 }
 
+/** Off in this copy: it is deployed as static files, with no Worker behind /api. */
+const ACCOUNTS = false
 const USER_KEY = 'mlh.user.v1'
 const LINK_KEY = 'mlh.sync.v1'
 /** Wait this long after a change before uploading, so a lesson's answers go up together. */
@@ -236,6 +238,12 @@ let started = false
 export async function startAccount() {
   if (started) return
   started = true
+  // Personal study copy: static hosting only, so there is no server to ask. Progress stays on the device (backup in Profile).
+  if (!ACCOUNTS) {
+    write(USER_KEY, null)
+    set({ user: null, loading: false })
+    return
+  }
   try {
     if (returned) {
       if (returned.error || !returned.code) {

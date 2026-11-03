@@ -8,8 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "dev:api": "wrangler dev --port 8787",
-    "db:local": "wrangler d1 migrations apply DB --local"
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "hanzi-writer": "^3.7.3",
