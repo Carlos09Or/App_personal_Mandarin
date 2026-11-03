@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#fbf7f0" />
+    <meta name="description" content="Learn HSK 1 Mandarin for free: lessons, hanzi writing and review." />
+    <link rel="icon" type="image/png" href="/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        overflow: hidden;
+      }
+      #boot-fill {
+        position: absolute;
+        inset: -40px;
+        background: center / cover no-repeat;
+        filter: blur(28px);
+      }
+      #boot-art {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        translate: -50% 0;
+        width: min(100vw, calc(100dvh * 941 / 1672));
+        height: auto;
+        aspect-ratio: 941 / 1672;
+        background: center / 100% 100% no-repeat;
+        mask-image: linear-gradient(to bottom, transparent 0, #000 9%);
+      }
+    </style>
+    <title>Mandarin Journey · HSK 1</title>
+    <script>
+      // Which light the learner is in, and the splash painting for it. This runs in <head>, ahead of the stylesheet and
+      // the app's script, so the painting is requested at once instead of after the CSS (a script in <body> waits for
+      // every stylesheet above it, which on a slow line was seconds).
+      ;(function () {
+        var night = new Date().getHours() < 6 || new Date().getHours() >= 19
+        try {
+          var scenery = JSON.parse(localStorage.getItem('mlh.progress.v1') || '{}').scenery
+          if (scenery === 'night' || scenery === 'day') night = scenery === 'night'
+        } catch (e) {}
+        var src = '%BASE_URL%journey/splash-' + (night ? 'night' : 'day') + '.webp'
+        // A 32 px blurred copy of each painting (tools/splash_placeholder.py writes this line): it is drawn at once,
+        // and the painting covers it when it arrives.
+        var BLUR = { day: 'data:image/webp;base64,UklGRooBAABXRUJQVlA4IH4BAACwCQCdASogADkAPt1kp02opaOiKA1REBuJbACdMug6f8dxQeVvgf4HGW2++h/5LSFowvv7rnay0YEeGd+kU5Ijs2/9xQXL6OBejnHgXki1n2ggS2ot4AD+kAO6qINj03Utf/lh/PJmGiJf/mw1n4NpFDOvGSePSNamoAODQ14bhSNrKj6HvGKPNHLBs9TnZT1qKdvKl60ybL+rbv1/+7lSFlu+gn57R7efog+ozAsPZExShnJkknbcUpz78K2axuyzZ8hW1nXpVEy2ZQIc66pIxIikCuGt7+XJqi0l2m42acKi5dxdOMdaX+UxPFobAWAq8UNfKGUQJFcROc4YyAdb47bF/KrMMwjwEz8tsF0a4/1ltKg03vP77YtV5tHdZ3Io8pykKdHtT4RktY52gLcTMluLFfNgaBTyOHZy4njqnt/9w0+6VhapFzYmzSjyvYlzwOpjLbpTL38VW5mK4PoB8uWZ5nEnNZJvWGwplrYGA68wRtZf+vrNg5qYAAAA', night: 'data:image/webp;base64,UklGRlABAABXRUJQVlA4IEQBAABQCACdASogADkAPt1cpkyopSOrKA6pYBuJbACdOUFVnjZ+AiQG2eu1XecwiMnuGeGIb3Y5mrL2BVGEW60dEs2qTN+gCx3n5GeEawAA/vGvWpMuo6Y38ZTPhA0xwrR/SwuwaXZ91r0CH8tJO45b7wz3ZY6A3edVy2oLsBu+tAIg85ntboB3iVM5L0Hp6wawtaOZUS/K+ChZjRAYpCC5ZNBX92nCWJiFSfLc69jmFAdQnIk5X+EpljVy0UybW6k+GF0B7GwNC4WQW3hjUf90DhVft6oxfw9G56CkPDcb1ZgSBtTLs19oJwoSfXzUm70CyMSvMJaPNiJc8tagFSWXUzYOPymSzNh3hPlo6uKAXUpuKdXtZEjNjV1ywG4dIoAkH8CALvJZ9Wazk0wsdEr+wjVPHR6mZmkrAd2zv7WM39ZR01M3QAA=' }
+        window.__boot = { night: night, src: src, blur: BLUR[night ? 'night' : 'day'] }
+        var hint = document.createElement('link')
+        hint.rel = 'preload'
+        hint.as = 'image'
+        hint.href = src
+        hint.setAttribute('fetchpriority', 'high')
+        document.head.appendChild(hint)
+      })()
+    </script>
+  </head>
+  <body>
+    <!-- Shown the moment the page arrives, before any script is downloaded: the same painting and sky as the
+         loading screen (src/journey/Splash.tsx), which takes over from it and then removes this. -->
+    <div id="boot" aria-hidden="true">
+      <div id="boot-fill"></div>
+      <img id="boot-art" alt="" />
+    </div>
+    <script>
+      var boot = document.getElementById('boot')
+      boot.style.background = window.__boot.night ? '#013379' : '#46acf9'
+      var bootArt = document.getElementById('boot-art')
+      if (window.__boot.blur) {
+        var blurUrl = 'url(' + window.__boot.blur + ')'
+        bootArt.style.backgroundImage = blurUrl
+        document.getElementById('boot-fill').style.backgroundImage = 'url(' + window.__boot.src + '), ' + blurUrl
+      }
+      bootArt.src = window.__boot.src
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

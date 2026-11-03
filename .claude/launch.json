@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "app", "run", "dev", "--", "--port", "5173", "--strictPort", "--host", "127.0.0.1"],
+      "port": 5173
+    },
+    {
+      "name": "app-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "app", "run", "preview", "--", "--port", "4173", "--strictPort", "--host", "127.0.0.1"],
+      "port": 4173
+    },
+    {
+      "name": "app-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "app", "run", "dev:api"],
+      "port": 8787
+    }
+  ]
+}

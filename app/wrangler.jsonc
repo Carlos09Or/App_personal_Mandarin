@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mandarin-deploy",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  // Static files are served straight from the assets; the Worker only runs for the API and the admin page.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/admin", "/admin/*"]
+  },
+  // Limits that keep one device or address from using up the day's free quota (see worker/index.ts). Counted per minute.
+  "ratelimits": [
+    { "name": "RL_IP", "namespace_id": "1001", "simple": { "limit": 600, "period": 60 } },
+    { "name": "RL_AUTH", "namespace_id": "1002", "simple": { "limit": 60, "period": 60 } },
+    { "name": "RL_USER", "namespace_id": "1003", "simple": { "limit": 90, "period": 60 } },
+    { "name": "RL_WRITE", "namespace_id": "1004", "simple": { "limit": 20, "period": 60 } }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mandarin-journey",
+      "database_id": "3b67f271-fa7e-4447-91fb-8035fbb51ccb",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

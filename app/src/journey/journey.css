@@ -1,0 +1,1882 @@
+/* The Panama journey: map, route, train ride, passport. Plain CSS because most of it is
+   positioned artwork and keyframes; every class starts with j- to stay clear of the app's. */
+
+.j-han {
+  font-family: var(--font-han);
+}
+
+/* ---------- character portrait (cropped from the 200 × 200 art) ---------- */
+.j-face {
+  position: relative;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.j-face img {
+  position: absolute;
+  display: block;
+  max-width: none;
+}
+
+/* ---------- map ---------- */
+.j-map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #2f88d3;
+}
+/* A fixed window onto the map; the stage inside moves like a camera (MapHome centerOn). */
+.j-map-scroll {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+.j-map-scroll::-webkit-scrollbar {
+  display: none;
+}
+.j-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Zoomed in so the traveller's province fills the screen. */
+  height: 175%;
+  aspect-ratio: 1672 / 941;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.j-mapart,
+.j-maptile,
+.j-mapdetail {
+  position: absolute;
+}
+.j-mapart {
+  inset: 0;
+  transition: filter 1.2s ease;
+}
+.j-mapart img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.j-maptile img,
+.j-mapdetail img {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.j-maptile img.on,
+.j-mapdetail img.on {
+  opacity: 1;
+}
+.j-stage > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: filter 1.2s ease;
+}
+.j-map.night .j-stage > svg,
+.j-map.night .j-mapart,
+.j-map.night .j-boat,
+.j-map.night .j-cloud {
+  filter: brightness(0.6) saturate(0.85) hue-rotate(-8deg);
+}
+.j-cloud {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: transform 1.5s cubic-bezier(0.3, 0.1, 0.3, 1), opacity 1.3s ease;
+}
+.j-cloud img {
+  width: 100%;
+  display: block;
+  animation: j-cloud-bob 5s ease-in-out infinite alternate;
+}
+/* What the clouds have always done (the door's walk used to share this name and replaced it): a slow rise and fall. */
+@keyframes j-cloud-bob {
+  to {
+    transform: translateY(-2.2%);
+  }
+}
+.j-boat {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  /* Centred on its point on the lane. */
+  transform: translate(-50%, -60%);
+  /* Sailing boats are moved by transform on every frame (MapHome.tsx startSea): their own layer, no layout. */
+  will-change: transform;
+}
+.j-boat img {
+  width: 100%;
+  display: block;
+  /* A province's boats are out of sight until its fog clears. */
+  opacity: 0;
+  transition: opacity 1.6s ease 0.8s;
+  transform-origin: 50% 70%;
+  animation: j-rock 2.6s ease-in-out infinite alternate;
+}
+.j-boat.on img {
+  opacity: 1;
+}
+@keyframes j-rock {
+  from {
+    transform: rotate(-1.6deg);
+  }
+  to {
+    transform: rotate(1.4deg) translateY(-1.5px);
+  }
+}
+.j-foam {
+  position: absolute;
+  z-index: 1;
+  width: 7px;
+  height: 3px;
+  margin: -1.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+.j-wave {
+  position: absolute;
+  z-index: 1;
+  width: 24px;
+  height: 8px;
+  margin: -4px 0 0 -12px;
+  pointer-events: none;
+  opacity: 0;
+}
+.j-badge {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 14px;
+  color: #fff;
+  background: #9aa9b6;
+  border: 3px solid #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+  transition: background 0.4s;
+  /* Its own layer: the flight swells it (Flyer.tsx) and its pulse runs here, so neither repaints the big map layer. */
+  will-change: transform;
+}
+.j-badge.locked::after {
+  content: '🔒';
+  position: absolute;
+  right: -9px;
+  bottom: -6px;
+  font-size: 12px;
+}
+.j-badge.open {
+  background: #d21034;
+}
+/* The pulse is a ring that grows and fades: transform and opacity only, so it never repaints (a growing box-shadow did). */
+.j-badge.open::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 4px solid rgba(242, 193, 78, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  animation: j-pulse 1.6s ease-out infinite;
+}
+.j-badge.done {
+  background: #2f9e7e;
+}
+@keyframes j-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  60%,
+  100% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+}
+.j-label {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, 0);
+  white-space: nowrap;
+  font-weight: 900;
+  font-size: 13px;
+  color: #0a426d;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 3px 9px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px -6px rgba(10, 66, 109, 0.6);
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+.j-label .j-han {
+  color: #d21034;
+  margin-left: 4px;
+}
+.j-pin {
+  position: absolute;
+  z-index: 4;
+  width: 50px;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+.j-pin-bubble {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #fff6dd;
+  border: 3px solid #fff;
+  box-shadow: 0 6px 12px -4px rgba(10, 40, 70, 0.55);
+  animation: j-hover 1.8s ease-in-out infinite;
+}
+.j-pin-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  margin-left: -8px;
+  border: 8px solid transparent;
+  border-top: 10px solid #fff;
+  border-bottom: 0;
+}
+.j-pin .j-face {
+  width: 100%;
+  height: 100%;
+}
+@keyframes j-hover {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+/* The traveller waiting in the corner of the map, who flies into a badge when it is tapped (Flyer.tsx). */
+.j-flight {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.j-flyer {
+  /* The picture is a big square (room for the wings); the standing traveller fills its middle, so the square hangs
+     partly outside the corner to put the feet just above the dock. */
+  --s: clamp(170px, 46vw, 220px);
+  /* How far down the square the standing feet are (each friend's own picture): the feet rest 14px above the dock. */
+  --feet: 0.65;
+  position: absolute;
+  left: calc(14px - var(--s) * 0.4);
+  bottom: calc(14px - var(--s) * (1 - var(--feet)));
+  width: var(--s);
+  aspect-ratio: 1;
+  will-change: transform, opacity;
+}
+.j-flyer[data-friend='wawa'] {
+  --feet: 0.69;
+}
+.j-flyer[data-friend='harpia'] {
+  --feet: 0.646;
+}
+.j-flyer[data-friend='tucan'] {
+  --feet: 0.642;
+}
+.j-flyer.arrive {
+  animation: j-arrive 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@keyframes j-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.7);
+  }
+}
+.j-flyer-bob {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 85%;
+  animation: j-idle 3.4s ease-in-out infinite;
+}
+.j-flyer.go .j-flyer-bob {
+  animation: none;
+}
+.j-flyer-bob img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  /* The poses not showing stay a hair above 0: a fully transparent picture is dropped by the browser and would only be
+     put on the graphics card in mid-flight, which is a stall. The flight shows them by animating opacity (Flyer.tsx). */
+  opacity: 0.004;
+  will-change: opacity;
+}
+.j-flyer-bob img.f-rest {
+  filter: drop-shadow(0 4px 5px rgba(10, 40, 70, 0.35));
+}
+.j-flyer[data-pose='rest'] .f-rest {
+  opacity: 1;
+}
+/* Barely moving while it waits: a slow breath, a tiny sway. */
+@keyframes j-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0) scale(1, 1);
+  }
+  35% {
+    transform: translateY(-2px) rotate(-1deg) scale(1.012, 1.02);
+  }
+  70% {
+    transform: translateY(0) rotate(1deg) scale(1, 0.992);
+  }
+}
+/* The sharp map fades in over the light one it replaces. */
+.j-sharp {
+  animation: j-sharp-in 0.8s ease both;
+}
+@keyframes j-sharp-in {
+  from {
+    opacity: 0;
+  }
+}
+/* While the traveller flies, nothing else on the map moves. */
+.j-map.flying .j-cloud img,
+.j-map.flying .j-boat img,
+.j-map.flying .j-pin-bubble,
+.j-map.flying .j-badge::before {
+  animation-play-state: paused;
+}
+.j-flyer.go img {
+  filter: none;
+}
+.j-spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: #fff6d8;
+  box-shadow: 0 0 6px rgba(255, 214, 90, 0.8);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.j-burst {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 233, 160, 0.95);
+  box-shadow: 0 0 6px rgba(255, 214, 90, 0.7);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .j-flyer-bob,
+  .j-flyer.arrive {
+    animation: none;
+  }
+}
+.j-map-bar {
+  position: absolute;
+  z-index: 6;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.j-toast {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 30px);
+  opacity: 0;
+  transition: 0.45s cubic-bezier(0.2, 1.3, 0.4, 1);
+  background: #0a426d;
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+.j-toast.on {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+.j-toast .j-han {
+  color: #f2c14e;
+  margin-left: 4px;
+}
+
+/* ---------- route: one metro line and one departure board ---------- */
+.j-route {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  /* Faint ink-wash mountains on rice paper (set in Route); the tile scrolls with the path. */
+  background: #fbf3dc 0 0 / 460px repeat local;
+  scrollbar-width: none;
+}
+.j-route::-webkit-scrollbar {
+  display: none;
+}
+.j-sky {
+  position: relative;
+  height: 290px;
+}
+.j-sky > i {
+  position: absolute;
+  inset: 0;
+  background: center 22% / cover no-repeat;
+  transition: opacity 1.4s ease;
+  -webkit-mask: linear-gradient(#000 55%, transparent);
+  mask: linear-gradient(#000 55%, transparent);
+}
+.j-sky.dim > i {
+  filter: brightness(0.55) saturate(0.8) hue-rotate(-8deg);
+}
+.j-head {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.j-back {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #0a426d;
+  font-weight: 900;
+  font-size: 18px;
+}
+.j-head small {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #0a426d;
+  opacity: 0.8;
+}
+.j-head h1 {
+  margin: 1px 0 0;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+  color: #0a426d;
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.95);
+}
+.j-head h1 .j-han {
+  color: #d21034;
+  font-size: 25px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+.j-prog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #0a426d;
+}
+.j-prog b {
+  display: block;
+  width: 150px;
+  height: 7px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+}
+.j-prog b i {
+  display: block;
+  height: 100%;
+  background: #3fb14f;
+  border-radius: 9px;
+  transition: width 0.6s ease;
+}
+.j-line {
+  position: relative;
+  max-width: 560px;
+  margin: -28px auto 0;
+  padding: 0 16px 60px 0;
+}
+.j-rail {
+  position: absolute;
+  left: 86px;
+  width: 5px;
+  margin-left: -2.5px;
+  border-radius: 3px;
+  transition: height 0.7s cubic-bezier(0.4, 0, 0.2, 1), top 0.7s;
+}
+.j-rail.done {
+  background: #d21034;
+}
+.j-rail.todo {
+  background: repeating-linear-gradient(#cfc6b4 0 9px, transparent 9px 16px);
+}
+.j-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  width: 100%;
+  padding-left: 116px;
+  text-align: left;
+  color: #0a426d;
+}
+.j-row .j-ic {
+  position: absolute;
+  left: 86px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+}
+.j-row b {
+  display: block;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.j-row small {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #9b9486;
+  margin-top: 2px;
+}
+.j-row.locked {
+  cursor: default;
+  color: #3d556b;
+}
+.j-knot {
+  width: 30px;
+  height: 46px;
+  display: block;
+}
+.j-knot.pop {
+  animation: j-knot-pop 0.6s cubic-bezier(0.3, 1.7, 0.5, 1);
+}
+@keyframes j-knot-pop {
+  0% {
+    transform: scale(0.3) rotate(-30deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+.j-bookic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #d21034;
+  border: 3px solid #fff;
+  box-shadow: 0 3px 8px -3px rgba(150, 10, 30, 0.6);
+  display: grid;
+  place-items: center;
+}
+.j-row.current {
+  min-height: 176px;
+}
+.j-ring {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #fff;
+  border: 5px solid #d21034;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 6px rgba(210, 16, 52, 0.12);
+}
+.j-ring::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d21034;
+}
+.j-rider {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: 62px;
+  transform: translateY(-58%);
+  pointer-events: none;
+}
+.j-rider img {
+  width: 100%;
+  display: block;
+  animation: j-hover 2.2s ease-in-out infinite;
+}
+.j-goal-ic {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: center / cover;
+  border: 5px solid #fff;
+  box-shadow: 0 10px 20px -10px rgba(10, 66, 109, 0.6);
+  margin-left: 42px;
+}
+.j-row.goal {
+  min-height: 136px;
+  padding-left: 160px;
+}
+.j-row.goal::before {
+  content: '';
+  position: absolute;
+  left: 86px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: #fbf3dc;
+  border: 4px solid #cfc6b4;
+  z-index: 1;
+}
+.j-row.goal.done::before {
+  border-color: #d21034;
+  background: #d21034;
+}
+
+/* Split-flap departure board: tapping it is how you board. */
+.j-board {
+  position: relative;
+  border: 2px solid #d21034;
+  border-radius: 14px;
+  background: #fffaf0;
+  padding: 9px 14px 10px;
+  text-align: center;
+  box-shadow: 0 12px 22px -14px rgba(120, 20, 30, 0.55);
+  color: #0a426d;
+  min-width: 200px;
+}
+.j-board:active {
+  transform: translateY(2px);
+}
+.j-bd-head {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #d21034;
+}
+.j-tiles {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin: 8px 0 7px;
+}
+.j-tile {
+  position: relative;
+  width: 54px;
+  height: 60px;
+  border-radius: 7px;
+  background: linear-gradient(#d8203c 0 50%, #c3142f 50%);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18), 0 2px 3px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+.j-tile::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1.5px;
+  margin-top: -0.75px;
+  background: rgba(70, 0, 10, 0.55);
+}
+.j-tile::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 50%;
+  height: 8px;
+  margin-top: -4px;
+  background: linear-gradient(90deg, #7a0c1c 0 4px, transparent 4px calc(100% - 4px), #7a0c1c 0);
+}
+.j-tile i {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-family: var(--font-han);
+  font-weight: 900;
+  font-size: 34px;
+  color: #fff4d6;
+}
+.j-tile.flap i {
+  animation: j-flap 0.09s linear;
+}
+@keyframes j-flap {
+  50% {
+    transform: scaleY(0.05);
+    filter: brightness(0.6);
+  }
+}
+.j-bd-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 15px;
+  font-weight: 900;
+}
+.j-bd-foot .py {
+  color: #2f88d3;
+}
+.j-bd-foot .place {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9b9486;
+}
+
+/* ---------- repeating landscape strips ---------- */
+.j-strip {
+  position: absolute;
+  left: 0;
+  display: flex;
+  height: 100%;
+  will-change: transform;
+}
+.j-strip img {
+  height: 100%;
+  width: auto;
+  /* The app's base styles cap images at their container's width; strips must stay wide. */
+  max-width: none;
+  display: block;
+  flex: none;
+}
+.j-strip img.mirror {
+  transform: scaleX(-1);
+}
+
+/* ---------- traveller picker ---------- */
+.j-sheet-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+  background: rgba(6, 30, 50, 0.35);
+}
+.j-sheet {
+  position: fixed;
+  z-index: 59;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 26px 26px 0 0;
+  padding: 18px 16px calc(26px + env(safe-area-inset-bottom));
+  color: #0a426d;
+}
+.j-sheet h3 {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-weight: 900;
+}
+.j-sheet p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b7f75;
+}
+.j-picks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.j-pick {
+  border: 2.5px solid #e3ebf1;
+  background: #f8fbfd;
+  border-radius: 18px;
+  padding: 8px 4px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.j-pick.on {
+  border-color: #f2c14e;
+  background: #fff6dd;
+}
+.j-pick .j-face {
+  width: 56px;
+  height: 56px;
+  background: #fff;
+}
+.j-pick b {
+  font-size: 12px;
+  font-weight: 900;
+}
+.j-pick span {
+  font-size: 12px;
+  color: #d21034;
+}
+
+/* ---------- loading screen ---------- */
+.j-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  background: #46acf9;
+  transition: opacity 0.4s ease 0.1s;
+}
+.j-splash.night {
+  background: #013379;
+}
+.j-splash.leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+/* The painting is 941 × 1672. It sits on the bottom edge at full width on tall phones and at
+   full height on wide screens; a blurred copy of it fills whatever is left. */
+.j-splash-fill {
+  position: absolute;
+  inset: -40px;
+  background: center / cover no-repeat;
+  filter: blur(28px);
+}
+.j-splash-art {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  width: min(100vw, calc(100dvh * 941 / 1672));
+  max-width: none;
+  height: auto;
+  /* Its size is known before it arrives, so the tiny stand-in behind it (index.html) fills the same place. */
+  aspect-ratio: 941 / 1672;
+  background: center / 100% 100% no-repeat;
+  /* The plain sky at the top melts into the fill, so no edge shows on tall phones. */
+  mask-image: linear-gradient(to bottom, transparent 0, #000 9%);
+}
+.j-splash-top {
+  position: absolute;
+  top: calc(24px + env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 0 28px;
+  color: #0a426d;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.9);
+  /* The bar waits for the painting (Splash.tsx), then comes in. */
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.j-splash-top.on {
+  opacity: 1;
+}
+.j-splash.night .j-splash-top {
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(1, 20, 60, 0.7);
+}
+/* The loading bar: hanzi and pinyin on the left, the percentage on the right, the bar below. */
+.j-splash-load {
+  width: min(100%, 320px);
+}
+.j-splash-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.j-splash-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.j-splash-label b {
+  font-size: 24px;
+  font-weight: 900;
+}
+.j-splash-label small {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.j-splash-pct {
+  font-size: 24px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.j-splash-bar {
+  margin-top: 8px;
+  height: 14px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 10px rgba(10, 66, 109, 0.18);
+}
+.j-splash.night .j-splash-bar {
+  background: rgba(255, 255, 255, 0.2);
+}
+.j-splash-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(#ff4f6a, #d21034);
+}
+
+/* ---------- minimal route: medallions on a winding path ---------- */
+.j-sky.small {
+  height: 190px;
+}
+.j-path {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: -6px;
+  padding: 0 0 70px;
+}
+.j-stop-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.j-stop {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  transition: transform 0.15s;
+}
+.j-stop:active {
+  transform: translateY(3px);
+}
+.j-stop.current {
+  width: 104px;
+  height: 104px;
+}
+.j-stop.current::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 4px solid #f2c14e;
+  animation: j-start-pulse 1.8s ease-in-out infinite;
+}
+@keyframes j-start-pulse {
+  50% {
+    transform: scale(1.06);
+    opacity: 0.55;
+  }
+}
+.j-stop.goal {
+  width: 112px;
+  height: 112px;
+}
+.j-medal {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 50%;
+  filter: drop-shadow(0 5px 6px rgba(80, 50, 10, 0.28));
+}
+.j-medal.photo {
+  object-fit: cover;
+  border: 6px solid #e2b23f;
+  box-shadow: inset 0 0 0 2px #fff6dd;
+}
+/* Stops without their own picture: the key hanzi on a gold felt-like coin. */
+.j-medal.plain {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, #fbf3dc 0 58%, #e2b23f 59% 100%);
+  color: #0a426d;
+  font-size: 30px;
+  font-weight: 900;
+}
+.j-stop.locked .j-medal {
+  filter: grayscale(1) opacity(0.5);
+}
+.j-stop.pop {
+  animation: j-knot-pop 0.6s cubic-bezier(0.3, 1.7, 0.5, 1);
+}
+.j-tick,
+.j-lock {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 900;
+}
+.j-tick {
+  background: #2f9e7e;
+  color: #fff;
+  border: 3px solid #fbf3dc;
+}
+.j-lock {
+  background: #fbf3dc;
+  font-size: 12px;
+}
+.j-stop-wrap .j-rider {
+  top: 6px;
+  transform: none;
+  width: 58px;
+  margin: 0 10px;
+}
+/* The small gold sign under the next stop. */
+.j-start {
+  margin-top: 12px;
+  padding: 4px 12px 5px;
+  border-radius: 999px;
+  background: linear-gradient(#f6cf6a, #e2a92e);
+  box-shadow: 0 3px 0 #b07e14;
+  color: #5a3d00;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+.j-start .j-han {
+  font-size: 13px;
+  margin-right: 2px;
+}
+.j-start:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b07e14;
+}
+
+/* ---------- title card, shared by the map and the routes ---------- */
+.j-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.j-titlebar > * {
+  pointer-events: auto;
+}
+.j-round {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 16px -8px rgba(10, 66, 109, 0.6);
+  color: #0a426d;
+  font-size: 22px;
+  font-weight: 900;
+}
+.j-round .j-face {
+  width: 100%;
+  height: 100%;
+}
+/* ---------- title sign, shared by the map and the routes ----------
+   A hanging wooden sign cut in three: the hibiscus end, a stretchy middle and the right end.
+   The height sets the scale, so the painting never distorts, and the text sits on the panel. */
+.j-card {
+  --h: 78px;
+  --capL: calc(var(--h) * 0.81);
+  --capR: calc(var(--h) * 0.35);
+  min-width: 0;
+  height: var(--h);
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 0 var(--capR) 0 var(--capL);
+  border-image: url('/brand/sign-day.webp') 0 87 0 203 fill / 0 var(--capR) 0 var(--capL) stretch;
+  padding: calc(var(--h) * 0.3) 12px calc(var(--h) * 0.16) calc(var(--h) * 0.2);
+  filter: drop-shadow(0 6px 8px rgba(40, 25, 5, 0.28));
+  /* The ropes fade out at the top instead of ending in a cut. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16%);
+  color: #0a426d;
+}
+.j-card.tall {
+  --h: 102px;
+}
+.j-titlebar.night .j-card {
+  --capL: calc(var(--h) * 0.45);
+  --capR: calc(var(--h) * 0.56);
+  border-image: url('/brand/sign-night.webp') 0 150 0 120 fill / 0 var(--capR) 0 var(--capL) stretch;
+  padding-top: calc(var(--h) * 0.37);
+  padding-left: calc(var(--h) * 0.1);
+  color: #fff6dc;
+}
+.j-titlebar.night .j-card {
+  --h: 86px;
+}
+.j-titlebar.night .j-card.tall {
+  --h: 124px;
+}
+.j-card small {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #8a6a3d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.j-titlebar.night .j-card small {
+  color: #f5dca6;
+}
+.j-card-name {
+  margin: 1px 0 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.j-card-name .j-han {
+  margin-left: 6px;
+  font-family: var(--font-brand-han);
+  font-weight: 400;
+  color: #d21034;
+}
+.j-titlebar.night .j-card-name .j-han {
+  color: #facd6f;
+}
+.j-card .j-prog {
+  margin-top: 3px;
+  color: #6b5236;
+}
+.j-card .j-prog b {
+  width: 112px;
+  background: rgba(93, 43, 21, 0.2);
+}
+.j-card .j-prog b i {
+  background: #ec9f21;
+}
+.j-titlebar.night .j-card .j-prog {
+  color: #f5dca6;
+}
+.j-titlebar.night .j-card .j-prog b {
+  background: rgba(255, 255, 255, 0.2);
+}
+.j-titlebar.night .j-card .j-prog b i {
+  background: #facd6f;
+}
+
+/* ---------- friends beside the route ---------- */
+.j-friend-spot {
+  position: absolute;
+  bottom: -14px;
+  width: 112px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.j-friend-spot > :not(.j-ground) {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 10px;
+}
+/* A little felt island of grass for the friend to stand on. */
+.j-ground {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 0;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 35%, #8cc56a 0 45%, #60a554 62%, #3f8a45 100%);
+  box-shadow: 0 6px 0 #2f6e3a, 0 12px 14px -6px rgba(30, 60, 20, 0.45);
+}
+.j-ground::before,
+.j-ground::after {
+  content: '';
+  position: absolute;
+  bottom: 14px;
+  width: 16px;
+  height: 12px;
+  border-radius: 50% 50% 0 0;
+  background: #4f9748;
+}
+.j-ground::before {
+  left: 10px;
+}
+.j-ground::after {
+  right: 14px;
+  width: 12px;
+  height: 9px;
+  background: #e0453a;
+  border-radius: 50%;
+}
+
+/* ---------- painted backdrop behind a route (unit 1) ---------- */
+.j-route-shell {
+  /* On a computer the route is one centred column of this width, like a phone-sized app. */
+  --j-col: 560px;
+  position: absolute;
+  inset: 0;
+  container-type: size;
+}
+.j-route-shell.painted {
+  /* Same cream / slate as the paintings' empty middle, so a wide screen shows no seam. */
+  background: #f7eedf;
+  transition: background-color 1.4s ease;
+}
+.j-route-shell.painted.night {
+  background: #2b4563;
+}
+.j-route-shell.painted .j-route {
+  background: none;
+}
+.j-backdrop {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* Fills the whole middle between the menu and the stats rail, up to a very wide screen. */
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+}
+/* Only on an extra-wide screen does plain paper remain beside the painting: a short fade joins them. */
+@container (min-width: 1101px) {
+  .j-backdrop {
+    -webkit-mask: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+    mask: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+  }
+}
+/*
+ * The painting covers the backdrop at its own proportions (never stretched): as wide as the box,
+ * or as tall as it when the box is tall and narrow (a phone). When it is taller than the screen it
+ * glides up and down with the route (--bd-p, 0 at the top of the route and 1 at the bottom), so
+ * the whole scene is seen as you go.
+ */
+.j-bd-art {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: max(100cqw, 56.22cqh);
+  aspect-ratio: 940 / 1672;
+  transform: translate(-50%, calc(var(--bd-p, 0) * (100cqh - 100%)));
+}
+.j-bd-art > i {
+  position: absolute;
+  inset: 0;
+  background: center / 100% 100% no-repeat;
+  transition: opacity 1.4s ease;
+}
+.j-scenery-friend {
+  position: absolute;
+  aspect-ratio: 1;
+  transition: filter 1.4s ease;
+}
+.j-scenery-friend svg {
+  width: 100%;
+  height: 100%;
+}
+.j-route-shell.night .j-scenery-friend {
+  filter: brightness(0.78) saturate(0.85);
+}
+.j-head.solo {
+  position: relative;
+  top: 0;
+  left: 0;
+  right: 0;
+  max-width: var(--j-col);
+  margin: 0 auto;
+  padding: 16px 14px 26px;
+}
+.j-route-shell.painted .j-path {
+  max-width: var(--j-col);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---------- round buttons over a painted backdrop ---------- */
+.j-titlebar.paper .j-round {
+  background: rgba(250, 243, 227, 0.9);
+  border: 1px solid rgba(160, 128, 88, 0.3);
+  box-shadow: 0 8px 22px -14px rgba(70, 55, 35, 0.55);
+  color: #34495f;
+}
+.j-titlebar.night .j-round {
+  background: rgba(10, 30, 55, 0.6);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+.j-titlebar.paper.night .j-round {
+  background: rgba(24, 41, 69, 0.8);
+  border-color: rgba(240, 214, 160, 0.22);
+  box-shadow: 0 8px 22px -14px rgba(0, 0, 0, 0.65);
+  color: #efe6d2;
+}
+
+/* ---------- a province's door page (LessonDoor.tsx) ---------- */
+.j-door {
+  --dw: min(60vw, 280px, 28dvh); /* the door's width */
+  --dh: calc(var(--dw) * var(--ar)); /* and height */
+  --sw: calc(var(--dw) * 1.2); /* a slide of the track: the door and its path */
+  --track-h: calc(var(--dh) * (var(--step) - 0.02) + var(--dw) * 0.9);
+  --lane: calc(var(--dw) * 0.78); /* how far the walker has to go, from the bottom of the lane to the doorstep */
+  --walk-delay: 0.4s; /* the hop on the tap comes first */
+  --walk-time: 1s;
+  /* one full stride (rest, left foot, rest, right foot): shorter as the walk gets quicker, so the feet keep up */
+  --gait: 0.42s;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* The white page is a veil that fades in over the map, which blurs and brightens behind it, instead of cutting in. */
+.j-door::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #fff;
+  opacity: 0;
+  animation: j-veil 0.75s ease-in-out 0.15s forwards;
+}
+@keyframes j-veil {
+  from {
+    opacity: 0;
+    -webkit-backdrop-filter: blur(0) brightness(1);
+    backdrop-filter: blur(0) brightness(1);
+  }
+  to {
+    opacity: 1;
+    -webkit-backdrop-filter: blur(6px) brightness(1.25);
+    backdrop-filter: blur(6px) brightness(1.25);
+  }
+}
+.j-door-back {
+  position: absolute;
+  top: max(env(safe-area-inset-top), 12px);
+  left: 14px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid #eee8dd;
+  background: #fff;
+  color: #6b5a44;
+  font-size: 22px;
+  font-weight: 900;
+  opacity: 0;
+}
+.j-door-title {
+  position: absolute;
+  top: max(env(safe-area-inset-top), 14px);
+  left: 0;
+  right: 0;
+  padding-top: 5dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+.j-door-title b {
+  font-family: var(--font-han);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #3b2a1a;
+}
+.j-door-title small {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #9a8466;
+}
+.j-door-dots {
+  display: flex;
+  margin-top: 4px;
+}
+/* a small dot inside a larger tap area */
+.j-door-dots button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+.j-door-dots button::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e2a92e;
+  transition: transform 0.2s;
+}
+.j-door-dots button.locked::before {
+  background: #e0dcd4;
+}
+.j-door-dots button.now::before {
+  background: #e0453a;
+}
+.j-door-dots button.view::before {
+  transform: scale(1.5);
+  box-shadow: 0 0 0 3px rgba(60, 50, 40, 0.12);
+}
+.j-door-stage {
+  position: relative;
+  width: 100%;
+  margin-top: 6dvh;
+}
+/* the doors side by side: swipe sideways, each snaps into the middle */
+.j-door-track {
+  display: flex;
+  height: var(--track-h);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  cursor: grab;
+}
+.j-door-track::-webkit-scrollbar {
+  display: none;
+}
+/* spacers so the first and the last door can reach the middle */
+.j-door-track::before,
+.j-door-track::after {
+  content: '';
+  flex: 0 0 calc(50% - var(--sw) / 2);
+}
+.j-slide {
+  position: relative;
+  flex: 0 0 var(--sw);
+  scroll-snap-align: center;
+  transform: scale(0.84);
+  transform-origin: 50% 35%;
+  opacity: 0.8;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.j-slide.on {
+  transform: none;
+  opacity: 1;
+}
+/* doors you have not reached yet */
+.j-slide.locked {
+  filter: grayscale(1);
+}
+.j-slide.locked:not(.on) {
+  opacity: 0.55;
+}
+.j-door-lock {
+  position: absolute;
+  left: var(--cx);
+  top: calc(var(--dh) * 0.62);
+  width: 38px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 3px 10px rgba(60, 50, 40, 0.25);
+  font-size: 19px;
+  filter: none;
+}
+.j-door-frame {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin: 0 auto;
+  padding: 0;
+  width: var(--dw);
+  height: var(--dh);
+  opacity: 0;
+  transform: translateY(10px) scale(0.96);
+}
+.j-door-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.j-door-art + .j-door-art {
+  position: absolute;
+  inset: 0;
+}
+.j-door-art.half,
+.j-door-art.open {
+  opacity: 0;
+}
+/* the path starts under the doorstep and widens towards the traveller */
+.j-door-path {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  top: calc(var(--dh) * (var(--step) - 0.02));
+  width: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+.j-door-num {
+  position: absolute;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-han);
+  font-weight: 900;
+  line-height: 1;
+  color: #6b3f1d;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.j-door-glow {
+  position: absolute;
+  left: var(--cx);
+  top: calc(var(--dh) * 0.62);
+  width: calc(var(--dw) * 0.3);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.4);
+  background: radial-gradient(circle, #fffbe8 0%, #ffe9a8 45%, rgba(255, 220, 130, 0) 72%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* the lane runs from the doorstep down; the traveller walks up it whichever door is in view */
+.j-door-lane {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  top: calc(var(--dh) * var(--step));
+  height: var(--lane);
+  pointer-events: none;
+}
+.j-walker {
+  position: absolute;
+  left: var(--cx);
+  bottom: 0;
+  width: calc(var(--dw) * 0.56);
+  aspect-ratio: 482 / 508;
+  transform-origin: 50% 95%; /* the feet: the ground line is 95% of the way down the picture */
+  transform: translate(-50%, 0);
+  opacity: 0;
+}
+.j-walker-bob {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.j-walker img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.j-w-search,
+.j-w-jump,
+.j-w-rest,
+.j-w-step-l,
+.j-w-step-r {
+  opacity: 0;
+}
+.j-door-go {
+  position: absolute;
+  left: 50%;
+  bottom: max(env(safe-area-inset-bottom), 22px);
+  margin-bottom: 4dvh;
+  transform: translateX(-50%);
+  padding: 10px 30px 12px;
+  border-radius: 999px;
+  background: linear-gradient(#f6cf6a, #e2a92e);
+  box-shadow: 0 4px 0 #b07e14;
+  color: #5a3d00;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  opacity: 0;
+}
+.j-door-go span {
+  font-family: var(--font-han);
+  font-size: 19px;
+  margin-right: 3px;
+}
+.j-door-go.locked {
+  background: linear-gradient(#e4e1db, #cfcbc3);
+  box-shadow: 0 4px 0 #aaa59b;
+  color: #6f6a60;
+}
+.j-door-go:active {
+  transform: translateX(-50%) translateY(2px);
+  box-shadow: 0 2px 0 #b07e14;
+}
+
+/* after dark: a night sky for the page and the doors' night pictures (the map behind it dims instead of brightening) */
+.j-door.night::before {
+  background:
+    radial-gradient(1.5px 1.5px at 12% 14%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 78% 9%, #fff, transparent),
+    radial-gradient(1px 1px at 33% 22%, #e9e4ff, transparent),
+    radial-gradient(1px 1px at 90% 28%, #e9e4ff, transparent),
+    radial-gradient(1px 1px at 55% 6%, #fff, transparent),
+    radial-gradient(1px 1px at 6% 40%, #e9e4ff, transparent),
+    radial-gradient(70% 38% at 50% 0%, rgba(150, 140, 230, 0.35), transparent),
+    linear-gradient(#0d1235, #1a1b4b 55%, #2a2559);
+  animation-name: j-veil-night;
+}
+@keyframes j-veil-night {
+  from {
+    opacity: 0;
+    -webkit-backdrop-filter: blur(0) brightness(1);
+    backdrop-filter: blur(0) brightness(1);
+  }
+  to {
+    opacity: 1;
+    -webkit-backdrop-filter: blur(6px) brightness(0.8);
+    backdrop-filter: blur(6px) brightness(0.8);
+  }
+}
+.j-door.night .j-door-title b {
+  color: #f6ecd2;
+}
+.j-door.night .j-door-title small {
+  color: #b9b1da;
+}
+.j-door.night .j-door-back {
+  border-color: #3b4080;
+  background: #1c2152;
+  color: #e8e2f6;
+}
+.j-door.night .j-door-dots button.locked::before {
+  background: #484c7c;
+}
+.j-door.night .j-door-dots button.view::before {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+.j-door.night .j-door-num {
+  color: #3a2d5c;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.j-door.night .j-door-lock {
+  background: rgba(28, 33, 82, 0.92);
+  box-shadow: 0 3px 10px rgba(0, 0, 20, 0.5);
+}
+.j-door.night .j-door-go.locked {
+  background: linear-gradient(#4d5080, #3a3d68);
+  box-shadow: 0 4px 0 #25274d;
+  color: #b4b6d6;
+}
+/* the traveller is the same picture by day and night, a little dimmer in the moonlight */
+.j-door.night .j-walker {
+  filter: brightness(0.86) saturate(0.95);
+}
+
+/* nothing shows until the pictures are here (.ready) */
+.j-door.ready .j-door-title,
+.j-door.ready .j-door-back {
+  animation: j-door-fade 0.45s ease-out 0.4s forwards;
+}
+.j-door.ready .j-door-frame {
+  animation: j-door-pop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.4s forwards;
+}
+.j-door.ready .j-door-go {
+  animation: j-door-fade 0.4s ease-out 0.75s forwards;
+}
+.j-door.ready .j-walker {
+  animation: j-door-fade 0.4s ease-out 0.65s forwards;
+}
+.j-door.ready .j-door-path {
+  animation: j-door-fade 0.5s ease-out 0.55s forwards;
+}
+.j-door.ready .j-walker-bob {
+  animation: j-idle 2.8s ease-in-out infinite alternate;
+}
+/* waiting: looking up at the door, and now and then a hand over the eyes to look closer */
+.j-door.ready .j-w-look {
+  animation: j-look 6.5s linear infinite;
+}
+.j-door.ready .j-w-search {
+  animation: j-search 6.5s linear infinite;
+}
+/* after the tap the traveller walks (.walking) and the button gives way */
+.j-door.walking .j-door-go {
+  animation: j-door-away 0.25s ease-out forwards;
+  pointer-events: none;
+}
+.j-door.walking .j-door-back,
+.j-door.walking .j-door-frame,
+.j-door.walking .j-door-dots {
+  pointer-events: none;
+}
+/* the walk starts: no more swiping, and the other doors fade away */
+.j-door.walking .j-door-track {
+  overflow-x: hidden;
+  pointer-events: none;
+}
+.j-door.walking .j-slide:not(.on) {
+  opacity: 0;
+}
+.j-door.walking .j-slide.on .j-door-art.half {
+  animation: j-door-fade 0.35s ease-out 0.1s forwards;
+}
+.j-door.walking .j-slide.on .j-door-art.open {
+  animation: j-door-fade 0.4s ease-out calc(var(--walk-delay) + var(--walk-time) * 0.5) forwards;
+}
+.j-door.walking .j-w-look,
+.j-door.walking .j-w-search {
+  animation: none;
+  opacity: 0;
+}
+.j-door.walking .j-w-jump {
+  animation: j-hide-after 0.4s linear forwards;
+}
+.j-door.walking .j-walker {
+  animation: j-walk var(--walk-time) linear var(--walk-delay) both;
+}
+.j-door.walking .j-walker-bob {
+  animation: j-hop 0.4s ease-out, j-walk-bob calc(var(--gait) / 4) ease-in-out var(--walk-delay) infinite alternate;
+}
+/* the walk, a step every quarter of --gait: rest, left foot, rest, right foot */
+.j-door.walking .j-w-rest {
+  animation: j-gait-rest var(--gait) steps(1, end) var(--walk-delay) infinite;
+}
+.j-door.walking .j-w-step-l {
+  animation: j-gait-l var(--gait) steps(1, end) var(--walk-delay) infinite;
+}
+.j-door.walking .j-w-step-r {
+  animation: j-gait-r var(--gait) steps(1, end) var(--walk-delay) infinite;
+}
+.j-door.walking .j-slide.on .j-door-glow {
+  animation: j-door-glow 0.7s ease-in calc(var(--walk-delay) + var(--walk-time) - 0.5s) forwards;
+}
+
+@keyframes j-door-fade {
+  to { opacity: 1; }
+}
+@keyframes j-door-away {
+  to { opacity: 0; transform: translateX(-50%) translateY(8px); }
+}
+@keyframes j-door-pop {
+  to { opacity: 1; transform: none; }
+}
+@keyframes j-idle {
+  to { transform: translateY(-1.2%); }
+}
+@keyframes j-look {
+  0%, 66% { opacity: 1; }
+  70%, 92% { opacity: 0; }
+  96%, 100% { opacity: 1; }
+}
+@keyframes j-search {
+  0%, 66% { opacity: 0; }
+  70%, 92% { opacity: 1; }
+  96%, 100% { opacity: 0; }
+}
+@keyframes j-hop {
+  50% { transform: translateY(-9%); }
+}
+@keyframes j-hide-after {
+  0%, 92% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes j-walk {
+  0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translate(-50%, calc(var(--lane) * -1)) scale(0.46); opacity: 0; }
+}
+@keyframes j-walk-bob {
+  to { transform: translateY(-2.2%); }
+}
+@keyframes j-gait-rest {
+  0% { opacity: 1; }
+  25% { opacity: 0; }
+  50% { opacity: 1; }
+  75% { opacity: 0; }
+}
+@keyframes j-gait-l {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes j-gait-r {
+  0% { opacity: 0; }
+  75% { opacity: 1; }
+}
+@keyframes j-door-glow {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  45% { opacity: 1; }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(2.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j-door::before {
+    animation: j-veil-calm 0.25s ease-out forwards;
+  }
+  .j-door.ready .j-walker-bob,
+  .j-door.walking .j-walker-bob,
+  .j-door.walking .j-w-rest,
+  .j-door.walking .j-w-step-l,
+  .j-door.walking .j-w-step-r,
+  .j-door.walking .j-slide.on .j-door-glow {
+    animation: none;
+  }
+  .j-door.ready .j-w-look,
+  .j-door.ready .j-w-search,
+  .j-door.walking .j-w-jump {
+    animation: none;
+  }
+  .j-door.ready .j-w-search {
+    opacity: 0;
+  }
+  .j-door.walking .j-walker {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, calc(var(--lane) * -0.5)) scale(0.75);
+  }
+  .j-door.walking .j-slide.on .j-door-art.open {
+    animation: none;
+    opacity: 1;
+  }
+}
+@keyframes j-veil-calm {
+  to { opacity: 1; }
+}
