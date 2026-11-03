@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FRIENDS, FRIEND_IDS } from '../data/friends'
 import DETAILS from '../data/map-details.json'
 import {
-  BADGE_AT, BOAT_SIZE, SEA_BOATS, CLOUDS, EXTRA_HOLE, OPEN_ZONE, REGIONS, VB, asset, hasContent, provinceById, type Province, type SeaBoat,
+  BADGE_AT, BOAT_SIZE, SEA_BOATS, CLOUDS, EXTRA_HOLE, OPEN_ZONE, ORIGIN, REGIONS, VB, asset, hasContent, provinceById, type Province, type SeaBoat,
 } from '../data/journey'
 import { saveData } from '../lib/network'
 import { isNight, setTraveler, useProgress } from '../lib/progress'
@@ -27,6 +27,8 @@ type Props = { active: boolean; onOpen: (p: Province) => void; event: MapEvent |
 const pct = ([x, y]: readonly [number, number]) => ({ left: `${((x - VB.x) / VB.w) * 100}%`, top: `${((y - VB.y) / VB.h) * 100}%` })
 const regionById = new Map(REGIONS.map((r) => [r.id, r]))
 const badgeAt = (id: string) => BADGE_AT[id] ?? regionById.get(id)!.c
+/** Personal study copy: every province is always on show, with no fog. */
+const SHOWN = new Set(REGIONS.filter((r) => r.unit).map((r) => r.id))
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /** The map at full size is cut into tiles; only the ones near the screen are loaded, so the sharp map costs a few MB, not all of it. */
@@ -119,8 +121,7 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   // While the traveller flies, the rest of the map stands still so every frame goes to the flight.
   const hushed = useRef(false)
-  // Personal study copy: no fog, every province is always on show.
-  const [shown] = useState(() => new Set(REGIONS.filter((r) => r.unit).map((r) => r.id)))
+  const shown = SHOWN
   const [pinAt, setPinAt] = useState(() => event?.hopFrom ?? currentProvince(progress).id)
   const [picking, setPicking] = useState(false)
   // The traveller in the corner is only put on the map once it shows, so its pictures never compete with the map's own.
