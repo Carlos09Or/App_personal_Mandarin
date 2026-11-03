@@ -209,7 +209,7 @@ export function MapHome({ active, onOpen, event, onEventDone }: Props) {
   // First paint: open the fog that was already cleared.
   useEffect(() => {
     const svg = svgRef.current!
-    for (const id of shown) {
+    for (const id of SHOWN) {
       svg.querySelector(`#j-clip-${id} circle`)?.setAttribute('r', '2000')
       layerRef.current!.querySelectorAll<HTMLElement>(`[data-cloud="${id}"]`).forEach((c) => (c.style.opacity = '0'))
     }

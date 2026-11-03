@@ -29,7 +29,7 @@ export type PathNode = {
   /** Position inside the unit, 0-based. */
   index: number
   kind: NodeKind
-  /** New words for a lesson; every word of the unit for a checkpoint. */
+  /** New words for a lesson; every word of the course for a checkpoint. */
   words: number[]
 }
 
@@ -41,7 +41,13 @@ export const RADICALS: Record<string, string> = raw.radicals
 const byNumber = new Map(WORDS.map((w) => [w.n, w]))
 export const word = (n: number): Word => byNumber.get(n)!
 
-export const LESSON_SIZE = 5
+/** Words in one door (lesson). */
+export const LESSON_SIZE = 15
+/**
+ * Personal study copy: the whole course (all 300 HSK 1 words, in the order of the ten themed units) is walked through
+ * Panama, province 1: 20 doors of 15 words, then the checkpoint. The themed units stay as review decks.
+ */
+const JOURNEY_UNIT = 1
 
 export const UNIT_ACCENTS = [
   { bg: '#e0453a', dark: '#b3322a', soft: '#fde8e4' },
@@ -57,22 +63,23 @@ export const UNIT_ACCENTS = [
 ]
 export const accentFor = (unitId: number) => UNIT_ACCENTS[(unitId - 1) % UNIT_ACCENTS.length]
 
-function nodesFor(unit: Unit): PathNode[] {
+function journeyNodes(): PathNode[] {
+  const all = UNITS.flatMap((u) => u.words)
   const nodes: PathNode[] = []
-  for (let i = 0; i < unit.words.length; i += LESSON_SIZE) {
+  for (let i = 0; i < all.length; i += LESSON_SIZE) {
     nodes.push({
-      id: `u${unit.id}-l${i / LESSON_SIZE + 1}`,
-      unitId: unit.id,
+      id: `u${JOURNEY_UNIT}-l${i / LESSON_SIZE + 1}`,
+      unitId: JOURNEY_UNIT,
       index: nodes.length,
       kind: 'lesson',
-      words: unit.words.slice(i, i + LESSON_SIZE),
+      words: all.slice(i, i + LESSON_SIZE),
     })
   }
-  nodes.push({ id: `u${unit.id}-cp`, unitId: unit.id, index: nodes.length, kind: 'checkpoint', words: unit.words })
+  nodes.push({ id: `u${JOURNEY_UNIT}-cp`, unitId: JOURNEY_UNIT, index: nodes.length, kind: 'checkpoint', words: all })
   return nodes
 }
 
-export const PATH: PathNode[] = UNITS.flatMap(nodesFor)
+export const PATH: PathNode[] = journeyNodes()
 export const nodesOfUnit = (unitId: number) => PATH.filter((p) => p.unitId === unitId)
 export const nodeById = (id: string) => PATH.find((p) => p.id === id)
 

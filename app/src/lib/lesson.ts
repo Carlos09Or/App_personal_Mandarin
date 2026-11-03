@@ -167,7 +167,8 @@ function lessonExercises(node: PathNode, p: Progress): Exercise[] {
   }
   seq.push({ kind: 'match', words: fresh })
 
-  const before = PATH.slice(0, PATH.indexOf(node)).filter((x) => x.kind === 'lesson').flatMap((x) => x.words)
+  // Every door is open, so only words from doors already played come back for review.
+  const before = PATH.filter((x) => x.kind === 'lesson' && x !== node && p.nodes[x.id]).flatMap((x) => x.words)
   const review = weakestWords(p, before, 2)
   seq.push(...practiceSeq(shuffle([...fresh, ...review]), ROTATION))
 
@@ -176,11 +177,10 @@ function lessonExercises(node: PathNode, p: Progress): Exercise[] {
   }
 
   // The lesson ends by putting its words to work: first one missing word, then a whole sentence.
-  const unitPool = UNITS.find((u) => u.id === node.unitId)?.words ?? []
   const known = new Set(knownBefore(node, p))
   const cloze = clozeFrom(fresh, known)
   if (cloze) seq.push(cloze)
-  const sentence = sentenceFrom(fresh, known, [...fresh, ...unitPool])
+  const sentence = sentenceFrom(fresh, known, fresh)
   if (sentence) seq.push(sentence)
   return seq
 }
@@ -207,7 +207,10 @@ function reviewExercises(pool: number[], p: Progress, size: number, sentences: n
 }
 
 export function buildNode(node: PathNode, p: Progress): Exercise[] {
-  return node.kind === 'lesson' ? lessonExercises(node, p) : reviewExercises(node.words, p, 12, 2)
+  if (node.kind === 'lesson') return lessonExercises(node, p)
+  // The checkpoint reviews the words of the doors played so far (all of them when too few have been played).
+  const played = PATH.filter((x) => x.kind === 'lesson' && p.nodes[x.id]).flatMap((x) => x.words)
+  return reviewExercises(played.length >= 12 ? played : node.words, p, 12, 2)
 }
 
 /** Writing drill for one character: trace it, then write it with less and less help. */

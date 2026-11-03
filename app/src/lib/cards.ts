@@ -1,5 +1,4 @@
 import { UNITS } from '../data/course'
-import { hasContent, provinceOfUnit } from '../data/journey'
 import { getProgress, learnedWords, recordAnswer, saveReview, today, type Progress } from './progress'
 import { weakestWords } from './lesson'
 import { review, State, type Grade, type ReviewEntry } from './srs'
@@ -85,13 +84,10 @@ export function deckRows(p: Progress, now = Date.now()) {
   })
 }
 
-/** The units that already have lessons, each as a deck of all its words, whether or not the lessons are done. */
+/** Every themed unit as a deck of all its words, whether or not the lessons are done. */
 export function wholeUnits(p: Progress, now = Date.now()) {
   const inDeck = new Set(deckWords(p))
-  return UNITS.filter((u) => {
-    const province = provinceOfUnit(u.id)
-    return province && hasContent(province)
-  }).map((unit) => ({
+  return UNITS.map((unit) => ({
     unit,
     words: unit.words,
     inDeck: unit.words.filter((n) => inDeck.has(n)).length,

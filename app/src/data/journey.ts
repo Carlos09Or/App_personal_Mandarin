@@ -30,7 +30,7 @@ export const PROVINCES: Province[] = [
     zh: '巴拿马',
     py: 'Bānámǎ',
     unit: 1,
-    stops: ['Tocumen Airport', 'Cinta Costera', 'Casco Viejo', 'Barrio Chino', 'Amador Causeway', 'Panama Viejo'],
+    stops: ['Tocumen Airport', 'Cinta Costera', 'Casco Viejo', 'Barrio Chino', 'Amador Causeway', 'Panama Viejo', 'Miraflores Locks', 'Biomuseo', 'Ancon Hill', 'Fish Market', 'Albrook Mall', 'Metropolitan Park', 'Plaza de Francia', 'Avenida Balboa', 'Bella Vista', 'El Cangrejo', 'Costa del Este', 'Gamboa', 'Soberania Park', 'Taboga Island'],
     story: { title: 'Story · The railroad', sub: 'Panama & China · 3 min' },
     landmark: { name: 'Panama Canal', zh: '运河', py: 'Bānámǎ Yùnhé', image: 'landmark-canal.webp' },
     backdrop: { day: 'route-bg-day.webp', night: 'route-bg-night.webp' },
@@ -41,7 +41,6 @@ export const PROVINCES: Province[] = [
     zh: '西巴拿马',
     py: 'Xī Bānámǎ',
     unit: 2,
-    stops: ['Arraijan', 'Vacamonte', 'La Chorrera', 'El Chorro Falls', 'Capira', 'Coronado Beach'],
     landmark: { name: 'Bridge of the Americas', zh: '大桥', py: 'Měizhōu Dàqiáo', image: 'stops/arch-bridge.webp' },
     header: { day: 'ride-landscape.webp' },
   },
@@ -66,6 +65,9 @@ export const STOP_ICONS: Record<string, string> = {
   'Barrio Chino': 'stops/chinese-gate.webp',
   'Amador Causeway': 'stops/bicycle.webp',
   'Panama Viejo': 'stops/ruin-tower.webp',
+  'Fish Market': 'stops/fishing-boat.webp',
+  'Ancon Hill': 'stops/mountain.webp',
+  'Taboga Island': 'stops/beach-umbrella.webp',
   Vacamonte: 'stops/fishing-boat.webp',
   'El Chorro Falls': 'stops/waterfall.webp',
   Capira: 'stops/mountain.webp',
@@ -81,7 +83,7 @@ export const STORY_ICON = 'stops/storybook.webp'
  * also the doorway's centre line; `step` is how far down the doorstep is.
  */
 export const DOOR_FRAME = { w: 760, h: 1228, step: 0.824, plaque: { x: 0.5, y: 0.32, d: 0.157 } }
-/** Panama's six lessons each have a door that nods to their place; its checkpoint is the canal lock. */
+/** Panama's first six doors each nod to their place and the rest rotate through them again; the checkpoint is the canal lock. */
 const PANAMA_DOORS = ['door-1-airport', 'door-2-seaside', 'door-3-oldtown', 'door-4-chinatown', 'door-5-causeway', 'door-6-ruins']
 /** Any lesson without a door of its own opens through this one. */
 const DEFAULT_DOOR = 'door-8-generic'
@@ -93,7 +95,7 @@ const DOOR_PATH: Record<string, string> = {
 }
 export type DoorArt = { name: string; path: string }
 export const doorFor = (node: PathNode): DoorArt => {
-  const name = (node.unitId === 1 ? (node.kind === 'checkpoint' ? 'door-7-canal' : PANAMA_DOORS[node.index]) : undefined) ?? DEFAULT_DOOR
+  const name = (node.unitId === 1 ? (node.kind === 'checkpoint' ? 'door-7-canal' : PANAMA_DOORS[node.index % PANAMA_DOORS.length]) : undefined) ?? DEFAULT_DOOR
   return { name, path: DOOR_PATH[name] }
 }
 /** After dark every door and path has a picture of its own, `<name>-night.webp` (tools/cut_doors_night.py). */
@@ -134,8 +136,21 @@ export const DOOR_FILES = [
 
 const ZH_NUMBERS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
 const PY_NUMBERS = ['líng', 'yī', 'èr', 'sān', 'sì', 'wǔ', 'liù', 'qī', 'bā', 'jiǔ', 'shí']
-/** "第一课" and "Dì-yī kè" for lesson n (1 to 10). */
-export const lessonTitle = (n: number) => ({ zh: `第${ZH_NUMBERS[n] ?? n}课`, py: `Dì-${PY_NUMBERS[n] ?? n} kè`, num: ZH_NUMBERS[n] ?? String(n) })
+/** Chinese numeral and pinyin for 1 to 99 ("十一", "二十"). */
+function numeral(n: number) {
+  if (n <= 10) return { zh: ZH_NUMBERS[n], py: PY_NUMBERS[n] }
+  const tens = Math.floor(n / 10)
+  const ones = n % 10
+  return {
+    zh: `${tens > 1 ? ZH_NUMBERS[tens] : ''}十${ones ? ZH_NUMBERS[ones] : ''}`,
+    py: `${tens > 1 ? `${PY_NUMBERS[tens]} ` : ''}shí${ones ? ` ${PY_NUMBERS[ones]}` : ''}`,
+  }
+}
+/** "第一课" and "Dì-yī kè" for lesson n ("第二十课" for 20). */
+export const lessonTitle = (n: number) => {
+  const { zh, py } = numeral(n)
+  return { zh: `第${zh}课`, py: `Dì-${py.replace(/ /g, '-')} kè`, num: zh }
+}
 
 // ---- Map geometry (map-provinces.json comes from tools/build_panama_map.py) ----
 
