@@ -1,3 +1,19 @@
+# Mandarin Journey · HSK 1 (personal study copy)
+
+Personal copy of the Mandarin Journey app for my own study. Differences from the public app:
+
+- Everything is open: no locked provinces, no fog, no grey doors.
+- The whole course (the 300 words of the HSK 1 list in `New-HSK-Vocabulary-Level-1.pdf`) is walked through **Panama**:
+  **20 doors of 15 words each** (door art rotates through the six Panama doors), then the canal checkpoint.
+  Voice clips for all 300 words and sentences are in `app/public/audio`.
+- Static hosting only (`app/wrangler.jsonc`, project `mandarin-personal`): no Worker, no database, no accounts.
+  Progress lives on the device; use Profile → Download my data to back it up.
+
+Deploy on Cloudflare: Workers & Pages → Create → connect this GitHub repo, root directory `app`,
+build command `npm install && npm run build`, deploy command `npx wrangler deploy`.
+
+---
+
 # Mandarin Journey · HSK 1
 
 Free HSK 1 Mandarin course for Spanish speakers, built as an installable web app (PWA). The learner travels

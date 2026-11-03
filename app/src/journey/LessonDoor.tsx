@@ -209,7 +209,7 @@ export function LessonDoor({ province, traveler, onBack, onCovered, onWalk, onDo
                   <span
                     className="j-door-num"
                     lang="zh"
-                    style={{ left: `${plaque.x * 100}%`, top: `${plaque.y * 100}%`, width: `${plaque.d * 100}%`, fontSize: `calc(var(--dw) * ${plaque.d * 0.74})` }}
+                    style={{ left: `${plaque.x * 100}%`, top: `${plaque.y * 100}%`, width: `${plaque.d * 100}%`, fontSize: `calc(var(--dw) * ${plaque.d * (num.length > 1 ? 0.46 : 0.74)})`, whiteSpace: 'nowrap' }}
                   >
                     {num}
                   </span>

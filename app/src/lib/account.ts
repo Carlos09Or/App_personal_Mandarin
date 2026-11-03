@@ -64,7 +64,7 @@ export const returningFromGoogle = returned !== null
 
 let account: Account = {
   available: false,
-  loading: true,
+  loading: ACCOUNTS,
   user: read<AccountUser>(USER_KEY),
   google: false,
   dev: false,
