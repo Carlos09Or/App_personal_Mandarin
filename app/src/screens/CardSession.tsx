@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { word } from '../data/course'
 import { prefetchClips, speak } from '../lib/audio'
 import { LEARN_AHEAD, answerCard, buildQueue, dueCount, dueNow, isLearning, practiceSet } from '../lib/cards'
@@ -51,6 +51,7 @@ export function CardSession({ mode, pool, onRestart, onExit }: Props) {
   const [revealed, setRevealed] = useState(false)
   const [front, setFront] = useState<Front>(() => pickFront(queue[0], mode))
   const [gems, setGems] = useState(0)
+  const retried = useRef(new Set<number>())
 
   const n = queue[0] as number | undefined
   const finished = n === undefined
@@ -79,9 +80,11 @@ export function CardSession({ mode, pool, onRestart, onExit }: Props) {
       const now = Date.now()
       answerCard(n, grade)
       const card = getProgress().cards[n]
-      // A card in its first steps comes back soon: a few cards later, or later still if it was answered well.
-      if (card && isLearning(card.state) && card.due - now < LEARN_AHEAD) {
-        rest.splice(Math.min(card.due - now < 5 * 60_000 ? 3 : 8, rest.length), 0, n)
+      // A card in its first steps comes back once more in this session, a few cards later (sooner if missed outright), so a
+      // run of misses can't keep the queue from ever getting shorter. The schedule still brings it back for the next session.
+      if (card && isLearning(card.state) && card.due - now < LEARN_AHEAD && !retried.current.has(n)) {
+        retried.current.add(n)
+        rest.splice(Math.min(grade === 1 ? 6 : 10, rest.length), 0, n)
       }
       if (!rest.length) setGems(finishReviewDay())
     } else if (grade <= 2) {
