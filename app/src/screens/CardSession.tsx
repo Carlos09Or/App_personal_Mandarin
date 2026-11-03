@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { word } from '../data/course'
 import { prefetchClips, speak } from '../lib/audio'
-import { LEARN_AHEAD, answerCard, buildQueue, dueCount, dueNow, isLearning, practiceSet } from '../lib/cards'
+import { answerCard, buildQueue, dueCount, dueNow, isLearning, practiceSet } from '../lib/cards'
 import { finishReviewDay, getProgress, isNight, useProgress } from '../lib/progress'
 import { previewLabels, type Grade } from '../lib/srs'
 import { holdUpdates } from '../lib/updates'
@@ -51,7 +51,6 @@ export function CardSession({ mode, pool, onRestart, onExit }: Props) {
   const [revealed, setRevealed] = useState(false)
   const [front, setFront] = useState<Front>(() => pickFront(queue[0], mode))
   const [gems, setGems] = useState(0)
-  const retried = useRef(new Set<number>())
 
   const n = queue[0] as number | undefined
   const finished = n === undefined
@@ -77,15 +76,9 @@ export function CardSession({ mode, pool, onRestart, onExit }: Props) {
     if (n === undefined) return
     const rest = queue.slice(1)
     if (mode === 'study') {
-      const now = Date.now()
+      // No repeats inside the session: a card that was not answered well is already scheduled (a few minutes to a day away)
+      // and comes first the next time the learner opens a session, which for a few visits a day is the natural spacing.
       answerCard(n, grade)
-      const card = getProgress().cards[n]
-      // A card in its first steps comes back once more in this session, a few cards later (sooner if missed outright), so a
-      // run of misses can't keep the queue from ever getting shorter. The schedule still brings it back for the next session.
-      if (card && isLearning(card.state) && card.due - now < LEARN_AHEAD && !retried.current.has(n)) {
-        retried.current.add(n)
-        rest.splice(Math.min(grade === 1 ? 6 : 10, rest.length), 0, n)
-      }
       if (!rest.length) setGems(finishReviewDay())
     } else if (grade <= 2) {
       // Practice: a word that was not got right stays in the round, sooner if it was missed outright.
