@@ -23,10 +23,19 @@ export const isLearning = (state: number) => state === State.Learning || state =
 
 export type Due = { learning: number[]; review: number[]; fresh: number[] }
 
-/** What is due now: cards in their first steps, cards whose day has come, and the words that are still new. There is no daily limit. */
 /** The words in the review deck: those from finished lessons, plus any that were studied ahead from a whole-unit deck. */
 export const deckWords = (p: Progress): number[] => [...new Set([...learnedWords(p), ...Object.keys(p.cards).map(Number)])]
 
+/** Cards seen for the first time today in study sessions. */
+export const newToday = (p: Progress, now = Date.now()) => {
+  const from = startOfDay(now)
+  return p.reviews.filter((r) => r.at >= from && r.s === State.New && r.src === 'card').length
+}
+
+/**
+ * What is due now: cards in their first steps, cards whose day has come, and the new words, as many as are left of the
+ * day's allowance (`newPerDay`, counted across all decks), like Anki's "new cards/day".
+ */
 export function dueNow(p: Progress, now = Date.now(), pool = deckWords(p)): Due {
   const inLearning = pool
     .filter((n) => {
@@ -35,8 +44,24 @@ export function dueNow(p: Progress, now = Date.now(), pool = deckWords(p)): Due 
     })
     .sort((a, b) => p.cards[a].due - p.cards[b].due)
   const review = pool.filter((n) => p.cards[n]?.state === State.Review && p.cards[n].due <= endOfDay(now))
-  const fresh = pool.filter((n) => !p.cards[n])
+  const fresh = pool.filter((n) => !p.cards[n]).slice(0, Math.max(0, p.newPerDay - newToday(p, now)))
   return { learning: inLearning, review, fresh }
+}
+
+/**
+ * Anki's order inside a session: a learning card whose wait is over comes first (earliest first), then the other cards as
+ * queued, and a learning card still waiting only once nothing else is left (Anki's learn-ahead, up to LEARN_AHEAD).
+ * Returns the queue with the next card at the front.
+ */
+export function nextFirst(p: Progress, queue: number[], now = Date.now()): number[] {
+  const learning = (n: number) => !!p.cards[n] && isLearning(p.cards[n].state)
+  const waiting = (n: number) => learning(n) && p.cards[n].due > now
+  const byDue = (a: number, b: number) => p.cards[a].due - p.cards[b].due
+  const first =
+    queue.filter((n) => learning(n) && !waiting(n)).sort(byDue)[0] ??
+    queue.find((n) => !waiting(n)) ??
+    [...queue].sort(byDue)[0]
+  return first === undefined ? queue : [first, ...queue.filter((n) => n !== first)]
 }
 
 /** Answers a card: it is scheduled again (srs.ts) and the answer joins the log. */

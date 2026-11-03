@@ -61,8 +61,10 @@ export type Progress = {
   cards: Record<number, CardState>
   /** Every answer on a card or in a lesson, newest last: the statistics are worked out from it. */
   reviews: ReviewEntry[]
-  /** Cards in one study session (there is no daily limit: sessions can follow each other), and the share of cards the learner wants to still remember when they come back. */
+  /** Cards in one study session (sessions can follow each other; new cards are capped per day by `newPerDay`), and the share of cards the learner wants to still remember when they come back. */
   sessionSize: number
+  /** New cards introduced per day in study sessions (Anki's "new cards/day"). */
+  newPerDay: number
   retention: number
   /** The day the gems for finishing the review were given, so they are given once a day. */
   reviewDay: string | null
@@ -107,6 +109,7 @@ function fresh(): Progress {
     cards: {},
     reviews: [],
     sessionSize: 15,
+    newPerDay: 20,
     retention: DEFAULT_RETENTION,
     reviewDay: null,
     ratings: {},
@@ -200,7 +203,7 @@ export function finishReviewDay() {
   return GEMS.review
 }
 
-export function setStudyOptions(o: { sessionSize?: number; retention?: number }) {
+export function setStudyOptions(o: { sessionSize?: number; newPerDay?: number; retention?: number }) {
   commit({ ...state, ...o })
 }
 

@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useMemo, useState } from 'react'
 import { word } from '../data/course'
 import { prefetchClips, speak } from '../lib/audio'
-import { answerCard, buildQueue, dueCount, dueNow, isLearning, practiceSet } from '../lib/cards'
+import { LEARN_AHEAD, answerCard, buildQueue, dueCount, dueNow, isLearning, nextFirst, practiceSet } from '../lib/cards'
 import { finishReviewDay, getProgress, isNight, useProgress } from '../lib/progress'
 import { previewLabels, type Grade } from '../lib/srs'
 import { holdUpdates } from '../lib/updates'
@@ -12,9 +12,9 @@ import { IconClose, IconGem } from '../components/icons'
 
 // A study session, as in Anki: a card shows one side, the learner tries to remember the other, taps "Show answer" and
 // says how it went. The button decides when the card comes back (lib/srs.ts). Cards still in their first steps return
-// a few cards later in the same session. Everything is saved after every answer, so leaving early loses nothing.
+// in the same session once their wait (1 or 10 minutes) is over. Everything is saved after every answer, so leaving early loses nothing.
 //
-// There is no daily limit: a session holds a handful of cards (the learner's choice) and the next one can start at once.
+// A session holds a handful of cards (the learner's choice) and the next one can start at once; new cards are capped per day (`newPerDay`).
 // "Practice" is the free version: the words that most need it, as many rounds as wanted, and nothing is rescheduled.
 
 export type SessionMode = 'study' | 'practice'
@@ -38,7 +38,7 @@ const BUTTONS: { grade: Grade; label: string; hint: string; cls: string }[] = [
 const startQueue = (mode: SessionMode, pool?: number[]) => {
   const p = getProgress()
   if (mode === 'practice') return practiceSet(p, pool ? pool.length : p.sessionSize, pool)
-  return buildQueue(p, dueNow(p, Date.now(), pool), p.sessionSize)
+  return nextFirst(p, buildQueue(p, dueNow(p, Date.now(), pool), p.sessionSize))
 }
 
 type Props = { mode: SessionMode; pool?: number[]; onRestart: (mode: SessionMode) => void; onExit: () => void }
@@ -76,18 +76,21 @@ export function CardSession({ mode, pool, onRestart, onExit }: Props) {
     if (n === undefined) return
     const rest = queue.slice(1)
     if (mode === 'study') {
-      // No repeats inside the session: a card that was not answered well is already scheduled (a few minutes to a day away)
-      // and comes first the next time the learner opens a session, which for a few visits a day is the natural spacing.
+      const now = Date.now()
       answerCard(n, grade)
+      // As in Anki, a card in its learning steps (1 and 10 minutes) comes back in this session once its wait is over.
+      const card = getProgress().cards[n]
+      if (card && isLearning(card.state) && card.due - now < LEARN_AHEAD) rest.push(n)
       if (!rest.length) setGems(finishReviewDay())
     } else if (grade <= 2) {
       // Practice: a word that was not got right stays in the round, sooner if it was missed outright.
       rest.splice(Math.min(grade === 1 ? 3 : 6, rest.length), 0, n)
     }
-    setQueue(rest)
+    const next = mode === 'study' ? nextFirst(getProgress(), rest) : rest
+    setQueue(next)
     setAnswered((a) => a + 1)
     setRevealed(false)
-    setFront(pickFront(rest[0], mode))
+    setFront(pickFront(next[0], mode))
   }
 
   useEffect(() => {

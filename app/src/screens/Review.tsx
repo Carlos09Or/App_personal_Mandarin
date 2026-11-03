@@ -175,10 +175,11 @@ function Study({ onStudy }: { onStudy: (mode: SessionMode, pool?: number[]) => v
 }
 
 const SESSION_OPTIONS = [10, 15, 20, 30]
+const NEW_OPTIONS = [10, 20, 30, 50]
 const RETENTION_OPTIONS = [0.85, 0.9, 0.95]
 
 function Options() {
-  const { sessionSize, retention } = useProgress()
+  const { sessionSize, newPerDay, retention } = useProgress()
   const pick = <T extends number>(items: T[], value: T, onPick: (v: T) => void, show: (v: T) => string) => (
     <div className="flex rounded-2xl border-2 border-line bg-card p-1 text-sm font-extrabold">
       {items.map((v) => (
@@ -198,7 +199,12 @@ function Options() {
       <div className="flex flex-col gap-2">
         <h3 className="font-black">Cards per session</h3>
         {pick(SESSION_OPTIONS, sessionSize, (v) => setStudyOptions({ sessionSize: v }), String)}
-        <p className="text-sm text-muted">There is no daily limit: start as many sessions as you want.</p>
+        <p className="text-sm text-muted">You can start as many sessions as you want.</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <h3 className="font-black">New cards per day</h3>
+        {pick(NEW_OPTIONS, newPerDay, (v) => setStudyOptions({ newPerDay: v }), String)}
+        <p className="text-sm text-muted">Words you see for the first time each day, as in Anki. Cards you missed come back soon, within the session.</p>
       </div>
       <div className="flex flex-col gap-2">
         <h3 className="font-black">Remember</h3>
